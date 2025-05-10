@@ -77,12 +77,6 @@
 
   <div class="builder-controls">
     <button id="run">Chạy Tất Cả</button>
-    <label>Hướng:
-      <select id="direction">
-        <option value="8">8 hướng</option>
-        <option value="4">4 hướng</option>
-      </select>
-    </label>
     <label>Delay (ms): <input type="number" id="delay" value="50" min="0" max="500"></label>
   </div>
 
@@ -108,10 +102,10 @@
   <script>
     const rows = 20, cols = 20;
     const dirs8 = [
-      {dx:-1, dy:0}, {dx:1, dy:0}, {dx:0, dy:-1}, {dx:0, dy:1},
-      {dx:-1, dy:-1},{dx:-1, dy:1},{dx:1, dy:-1},{dx:1, dy:1}
+      {dx:-1,dy:0},{dx:1,dy:0},{dx:0,dy:-1},{dx:0,dy:1},
+      {dx:-1,dy:-1},{dx:-1,dy:1},{dx:1,dy:-1},{dx:1,dy:1}
     ];
-    const dirs4 = dirs8.slice(0, 4);
+    const dirs4 = dirs8.slice(0,4);
 
     const builderEl = document.getElementById('grid-builder');
     const grids = {};
@@ -119,215 +113,99 @@
 
     function makeGrid(el) {
       const grid = [];
-      for (let i = 0; i < rows; i++) {
-        grid[i] = [];
-        for (let j = 0; j < cols; j++) {
+      for (let i=0;i<rows;i++){
+        grid[i]=[];
+        for(let j=0;j<cols;j++){
           const cell = document.createElement('div');
-          cell.className = 'cell';
-          cell.dataset.i = i;
-          cell.dataset.j = j;
+          cell.className='cell';
+          cell.dataset.i=i; cell.dataset.j=j;
           el.appendChild(cell);
-          grid[i][j] = { i, j, el: cell, obstacle: false, prev: null, visited: false, g: Infinity, f: Infinity };
+          grid[i][j]={i,j,el:cell, obstacle:false, prev:null, visited:false, g:Infinity,f:Infinity};
         }
       }
       return grid;
     }
 
     grids.builder = makeGrid(builderEl);
-    ['astar', 'dijkstra', 'bfs', 'dfs'].forEach(id => {
-      grids[id] = makeGrid(document.getElementById('grid-' + id));
+    ['astar','dijkstra','bfs','dfs'].forEach(id => {
+      grids[id] = makeGrid(document.getElementById('grid-'+id));
     });
 
-    let drawing = false, mode = 0;
-    builderEl.addEventListener('contextmenu', e => {
+    let drawing=false, mode=0;
+    builderEl.addEventListener('contextmenu',e=>{
       e.preventDefault();
-      const c = e.target;
-      if (!c.classList.contains('cell')) return;
-      const i = +c.dataset.i, j = +c.dataset.j;
-      if (mode === 0) {
-        if (startPos) builderEl.children[startPos.i * cols + startPos.j].classList.remove('start');
-        startPos = { i, j };
-        c.classList.add('start');
-        mode = 1;
-      } else if (mode === 1) {
-        if (endPos) builderEl.children[endPos.i * cols + endPos.j].classList.remove('end');
-        endPos = { i, j };
-        c.classList.add('end');
-        mode = 2;
+      const c=e.target; if(!c.classList.contains('cell')) return;
+      const i=+c.dataset.i, j=+c.dataset.j;
+      if(mode===0){
+        if(startPos) builderEl.children[startPos.i*cols+startPos.j].classList.remove('start');
+        startPos={i,j}; c.classList.add('start'); mode=1;
+      } else if(mode===1){
+        if(endPos) builderEl.children[endPos.i*cols+endPos.j].classList.remove('end');
+        endPos={i,j}; c.classList.add('end'); mode=2;
       }
     });
-    builderEl.addEventListener('mousedown', e => { if (e.button === 0) drawing = true; });
-    builderEl.addEventListener('mouseup', _ => drawing = false);
-    builderEl.addEventListener('mousemove', e => {
-      if (!drawing) return;
-      const c = e.target;
-      if (!c.classList.contains('cell')) return;
-      const i = +c.dataset.i, j = +c.dataset.j;
-      if ((startPos && i === startPos.i && j === startPos.j) || (endPos && i === endPos.i && j === endPos.j)) return;
-      grids.builder[i][j].obstacle = true;
-      c.classList.add('obstacle');
+    builderEl.addEventListener('mousedown',e=>{ if(e.button===0) drawing=true; });
+    builderEl.addEventListener('mouseup',_=>drawing=false);
+    builderEl.addEventListener('mousemove',e=>{
+      if(!drawing) return;
+      const c=e.target; if(!c.classList.contains('cell')) return;
+      const i=+c.dataset.i,j=+c.dataset.j;
+      if((startPos&&i===startPos.i&&j===startPos.j)||(endPos&&i===endPos.i&&j===endPos.j)) return;
+      grids.builder[i][j].obstacle=true; c.classList.add('obstacle');
     });
 
-    document.getElementById('clear').onclick = () => {
-      startPos = endPos = null;
-      mode = 0;
-      builderEl.querySelectorAll('.cell').forEach(c => c.className = 'cell');
-      for (const key in grids) grids[key].flat().forEach(n => {
-        n.obstacle = false;
-        n.prev = null;
-        n.visited = false;
-        n.g = Infinity;
-        n.f = Infinity;
+    document.getElementById('clear').onclick=()=>{
+      startPos=endPos=null; mode=0;
+      builderEl.querySelectorAll('.cell').forEach(c=>c.className='cell');
+      for(const key in grids) grids[key].flat().forEach(n=>{
+        n.obstacle=false; n.prev=null; n.visited=false; n.g=Infinity; n.f=Infinity;
       });
     };
 
-    document.getElementById('run').onclick = () => {
-      if (!startPos || !endPos) return alert('Chưa đặt Start/End!');
-      ['astar', 'dijkstra', 'bfs', 'dfs'].forEach(id => {
-        grids[id].flat().forEach(n => {
-          const b = grids.builder[n.i][n.j];
-          const c = n.el;
-          c.className = 'cell';
-          n.obstacle = b.obstacle;
-          if (b.obstacle) c.classList.add('obstacle');
-          if (startPos.i === n.i && startPos.j === n.j) c.classList.add('start');
-          if (endPos.i === n.i && endPos.j === n.j) c.classList.add('end');
-          n.prev = null;
-          n.visited = false;
-          n.g = Infinity;
-          n.f = Infinity;
+    document.getElementById('run').onclick=()=>{
+      if(!startPos||!endPos) return alert('Chưa đặt Start/End!');
+      ['astar','dijkstra','bfs','dfs'].forEach(id=>{
+        grids[id].flat().forEach(n=>{
+          const b=grids.builder[n.i][n.j];
+          const c=n.el; c.className='cell';
+          if(b.obstacle){ n.obstacle=true; c.classList.add('obstacle'); } else n.obstacle=false;
+          if(startPos.i===n.i&&startPos.j===n.j) c.classList.add('start');
+          if(endPos.i===n.i&&endPos.j===n.j) c.classList.add('end');
+          n.prev=null; n.visited=false; n.g=Infinity; n.f=Infinity;
         });
       });
-      const delay = +document.getElementById('delay').value;
-      const useDirs = document.getElementById('direction').value === '8' ? dirs8 : dirs4;
-      runAStar(grids.astar, delay, useDirs);
-      runDijkstra(grids.dijkstra, delay, useDirs);
-      runBFS(grids.bfs, delay, useDirs);
-      runDFS(grids.dfs, delay, useDirs);
+      const delay=+document.getElementById('delay').value;
+      runAStar(grids.astar, delay);
+      runDijkstra(grids.dijkstra, delay);
+      runBFS(grids.bfs, delay);
+      runDFS(grids.dfs, delay);
     };
 
-    function reconstruct(node) {
-      while (node.prev) {
-        if (!node.el.classList.contains('start') && !node.el.classList.contains('end')) node.el.classList.add('path');
-        node = node.prev;
-      }
-    }
-    function mark(node, cls) {
-      if (!node.el.classList.contains('start') && !node.el.classList.contains('end')) node.el.classList.add(cls);
-    }
-    function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+    function reconstruct(node){ while(node.prev){ if(!node.el.classList.contains('start')&&!node.el.classList.contains('end')) node.el.classList.add('path'); node=node.prev;} }
+    function mark(node,cls){ if(!node.el.classList.contains('start')&&!node.el.classList.contains('end')) node.el.classList.add(cls); }
+    function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
-    async function runAStar(grid, delay, dirs) {
-      const open = [];
-      const start = grid[startPos.i][startPos.j], end = grid[endPos.i][endPos.j];
-      start.g = 0;
-      start.f = heuristic(start, end);
-      open.push(start);
-      while (open.length) {
-        open.sort((a, b) => a.f - b.f);
-        const cur = open.shift();
-        if (cur.visited) continue;
-        cur.visited = true;
-        mark(cur, 'closed');
-        if (cur === end) { reconstruct(cur); return; }
-        for (const d of dirs) {
-          const ni = cur.i + d.dx, nj = cur.j + d.dy;
-          if (ni < 0 || ni >= rows || nj < 0 || nj >= cols) continue;
-          const nb = grid[ni][nj];
-          if (nb.obstacle || nb.visited) continue;
-          const gNew = cur.g + (d.cost || 1);
-          if (gNew < nb.g) {
-            nb.g = gNew;
-            nb.f = nb.g + heuristic(nb, end);
-            nb.prev = cur;
-            if (!open.includes(nb)) open.push(nb);
-            mark(nb, 'open');
-          }
-        }
-        await wait(delay);
-      }
-      alert('A* không tìm thấy!');
-    }
-
-    async function runDijkstra(grid, delay, dirs) {
-      const open = [];
-      const start = grid[startPos.i][startPos.j], end = grid[endPos.i][endPos.j];
-      start.g = 0;
-      open.push(start);
-      while (open.length) {
-        open.sort((a, b) => a.g - b.g);
-        const cur = open.shift();
-        if (cur.visited) continue;
-        cur.visited = true;
-        mark(cur, 'closed');
-        if (cur === end) { reconstruct(cur); return; }
-        for (const d of dirs) {
-          const ni = cur.i + d.dx, nj = cur.j + d.dy;
-          if (ni < 0 || ni >= rows || nj < 0 || nj >= cols) continue;
-          const nb = grid[ni][nj];
-          if (nb.obstacle || nb.visited) continue;
-          const gNew = cur.g + (d.cost || 1);
-          if (gNew < nb.g) {
-            nb.g = gNew;
-            nb.prev = cur;
-            if (!open.includes(nb)) open.push(nb);
-            mark(nb, 'open');
-          }
-        }
-        await wait(delay);
-      }
-      alert('Dijkstra không tìm thấy!');
-    }
-
-    async function runBFS(grid, delay, dirs) {
-      const queue = [];
-      const start = grid[startPos.i][startPos.j], end = grid[endPos.i][endPos.j];
-      queue.push(start);
-      start.visited = true;
-      while (queue.length) {
-        const cur = queue.shift();
-        mark(cur, 'closed');
-        if (cur === end) { reconstruct(cur); return; }
-        for (const d of dirs) {
-          const ni = cur.i + d.dx, nj = cur.j + d.dy;
-          if (ni < 0 || ni >= rows || nj < 0 || nj >= cols) continue;
-          const nb = grid[ni][nj];
-          if (nb.obstacle || nb.visited) continue;
-          nb.visited = true;
-          nb.prev = cur;
-          queue.push(nb);
-          mark(nb, 'open');
-        }
-        await wait(delay);
-      }
-      alert('BFS không tìm thấy!');
-    }
-
-    async function runDFS(grid, delay, dirs) {
-      const stack = [];
-      const start = grid[startPos.i][startPos.j], end = grid[endPos.i][endPos.j];
-      stack.push(start);
-      start.visited = true;
-      while (stack.length) {
-        const cur = stack.pop();
-        mark(cur, 'closed');
-        if (cur === end) { reconstruct(cur); return; }
-        for (const d of dirs) {
-          const ni = cur.i + d.dx, nj = cur.j + d.dy;
-          if (ni < 0 || ni >= rows || nj < 0 || nj >= cols) continue;
-          const nb = grid[ni][nj];
-          if (nb.obstacle || nb.visited) continue;
-          nb.visited = true;
-          nb.prev = cur;
-          stack.push(nb);
-          mark(nb, 'open');
-        }
-        await wait(delay);
-      }
-      alert('DFS không tìm thấy!');
-    }
-
-    function heuristic(a,b){ return Math.hypot(a.i-b.i, a.j-b.j); }
+    async function runAStar(grid, delay){
+      const open=[];
+      const start=grid[startPos.i][startPos.j], end=grid[endPos.i][endPos.j];
+      start.g=0; start.f=heuristic(start,end); open.push(start);
+      while(open.length){ open.sort((a,b)=>a.f-b.f); const cur=open.shift(); if(cur.visited) continue; cur.visited=true; mark(cur,'closed'); if(cur===end){ reconstruct(cur); return;} for(const d of dirs8){ const ni=cur.i+d.dx, nj=cur.j+d.dy; if(ni<0||ni>=rows||nj<0||nj>=cols) continue; const nb=grid[ni][nj]; if(nb.obstacle||nb.visited) continue; const gNew=cur.g+(d.cost||1); if(gNew<nb.g){ nb.g=gNew; nb.f=nb.g+heuristic(nb,end); nb.prev=cur; if(!open.includes(nb)) open.push(nb); mark(nb,'open'); }} await wait(delay);} alert('A* không tìm thấy!'); }
+    async function runDijkstra(grid, delay){
+      const open=[];
+      const start=grid[startPos.i][startPos.j], end=grid[endPos.i][endPos.j];
+      start.g=0; open.push(start);
+      while(open.length){ open.sort((a,b)=>a.g-b.g); const cur=open.shift(); if(cur.visited) continue; cur.visited=true; mark(cur,'closed'); if(cur===end){ reconstruct(cur); return;} for(const d of dirs8){ const ni=cur.i+d.dx, nj=cur.j+d.dy; if(ni<0||ni>=rows||nj<0||nj>=cols) continue; const nb=grid[ni][nj]; if(nb.obstacle||nb.visited) continue; const gNew=cur.g+(d.cost||1); if(gNew<nb.g){ nb.g=gNew; nb.prev=cur; if(!open.includes(nb)) open.push(nb); mark(nb,'open'); }} await wait(delay);} alert('Dijkstra không tìm thấy!'); }
+    async function runBFS(grid, delay){
+      const queue=[];
+      const start=grid[startPos.i][startPos.j], end=grid[endPos.i][endPos.j];
+      queue.push(start); start.visited=true;
+      while(queue.length){ const cur=queue.shift(); mark(cur,'closed'); if(cur===end){ reconstruct(cur); return;} for(const d of dirs4){ const ni=cur.i+d.dx, nj=cur.j+d.dy; if(ni<0||ni>=rows||nj<0||nj>=cols) continue; const nb=grid[ni][nj]; if(nb.obstacle||nb.visited) continue; nb.visited=true; nb.prev=cur; queue.push(nb); mark(nb,'open'); } await wait(delay);} alert('BFS không tìm thấy!'); }
+    async function runDFS(grid, delay){
+      const stack=[];
+      const start=grid[startPos.i][startPos.j], end=grid[endPos.i][endPos.j];
+      stack.push(start); start.visited=true;
+      while(stack.length){ const cur=stack.pop(); mark(cur,'closed'); if(cur===end){ reconstruct(cur); return;} for(const d of dirs4){ const ni=cur.i+d.dx, nj=cur.j+d.dy; if(ni<0||ni>=rows||nj<0||nj>=cols) continue; const nb=grid[ni][nj]; if(nb.obstacle||nb.visited) continue; nb.visited=true; nb.prev=cur; stack.push(nb); mark(nb,'open'); } await wait(delay);} alert('DFS không tìm thấy!'); }
+    function heuristic(a,b){ return Math.hypot(a.i-b.i,a.j-b.j); }
   </script>
 </body>
 </html>
